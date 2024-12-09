@@ -136,38 +136,50 @@ async def list_emotions_handler(message: types.Message):
         await message.reply("Эмоции не настроены.")
 
 # Обработчик реакции (эмодзи), который будет вызван при реакции на сообщение
-async def handle_reaction(callback_query: types.CallbackQuery):
+async def handle_reaction(message: types.Message):
+    """
+    Обрабатывает реакцию (эмодзи), добавленную к сообщению.
+    """
     try:
-        # Получаем id пользователя, который поставил реакцию, и id чата
-        user_id = callback_query.from_user.id
-        chat_id = callback_query.message.chat.id
+        user_id = message.from_user.id  # ID пользователя, который поставил реакцию
+        chat_id = message.chat.id        # ID чата, в котором была реакция
+        reaction = None
 
-        # Получаем информацию о реакции
-        reaction = callback_query.data.split("_")[1]  # Пример: 'reaction_❤️', мы получаем '❤️'
+        # Проверяем, если в сообщении есть сущности
+        if 'entities' in message:
+            for entity in message.entities:
+                if entity.type == 'emoji':
+                    # Получаем саму эмоцию (если это смайл)
+                    reaction = message.text[entity.offset:entity.offset + entity.length]
+                    break
 
-        # Получаем количество очков за эту реакцию
-        points = await get_emotion_points(reaction, chat_id)
-        
-        if points:
-            # Получаем текущие очки пользователя
-            current_points = await get_user_points(user_id, chat_id)
-            new_points = current_points + points
+        if reaction:
+            # Получаем количество очков за эту эмоцию
+            points = await get_emotion_points(reaction, chat_id)
+            if points:
+                # Получаем текущие очки пользователя
+                current_points = await get_user_points(user_id, chat_id)
+                new_points = current_points + points
 
-            # Обновляем очки пользователя в базе
-            await set_user_points(user_id, chat_id, new_points)
+                # Обновляем очки пользователя
+                await set_user_points(user_id, chat_id, new_points)
 
-            # Отправляем пользователю сообщение, что очки были добавлены
-            await callback_query.message.answer(f"Вы получили {points} очков за реакцию '{reaction}'!")
+                # Обновляем ранг пользователя (если это необходимо)
+                await update_user_rank_based_on_points(user_id, chat_id, new_points)
+
+                # Отправляем сообщение пользователю
+                await message.reply(f"Вы получили {points} очков за реакцию '{reaction}' на сообщение.")
+            else:
+                # Если эмоция не настроена для начисления очков
+                await message.reply("Эта реакция не настроена для начисления очков.")
         else:
-            # Если эмоция не настроена для начисления очков
-            await callback_query.message.answer(f"Эта реакция '{reaction}' не настроена для начисления очков.")
-        
-        # Подтверждаем обработку callback-запроса
-        await callback_query.answer()
-    
+            # Если в сообщении нет эмоции
+            await message.reply("Не была найдена подходящая реакция.")
+
     except Exception as e:
-        # Логируем ошибку, если что-то пошло не так
+        # Логируем ошибку, если она произошла
         logging.error(f"Ошибка при обработке реакции: {e}")
+
 
 
 
