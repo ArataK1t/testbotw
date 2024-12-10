@@ -17,47 +17,24 @@ async def process_update(request: Request):
     data = await request.json()
     logging.info(f"Received webhook data: {data}")
 
-    # Проверяем, есть ли информация о реакции (callback query)
-    if 'callback_query' in data:
-        callback_data = data["callback_query"]
-        logging.info(f"Received callback query: {callback_data}")
-        
-        # Извлекаем эмоцию из callback_data
-        if 'data' in callback_data:
-            # Пример: reaction_emoji
-            callback_data_split = callback_data['data'].split('_')
-            if len(callback_data_split) == 2 and callback_data_split[0] == 'reaction':
-                emoji = callback_data_split[1]
-                chat_id = callback_data["message"]["chat"]["id"]
-                user_id = callback_data["from"]["id"]
+    # Проверяем, есть ли информация о реакции
+    if 'reaction' in data:
+        reaction_data = data["reaction"]
+        logging.info(f"Received reaction data: {reaction_data}")
 
-                # Получаем количество очков за эту эмоцию
-                points = await get_emotion_points(chat_id, emoji)
-                if points:
-                    # Начисляем очки пользователю
-                    await set_user_points(user_id, chat_id, points)
-                    await bot.send_message(chat_id, f"Вы получили {points} очков за реакцию с эмоцией '{emoji}'!")
-                else:
-                    await bot.send_message(chat_id, "Эта реакция не настроена для начисления очков.")
+        emotion = reaction_data['emoji']  # Эмоция (например, "thumbs_up")
+        chat_id = reaction_data["message"]["chat"]["id"]
+        user_id = reaction_data["user"]["id"]
 
-    # Проверка сообщений с эмоциями
-    if 'message' in data:
-        message_data = data['message']
-
-        # Проверяем, есть ли эмоции в сообщении
-        if 'entities' in message_data:
-            for entity in message_data['entities']:
-                if entity['type'] == 'emoji':
-                    emoji = message_data['text'][entity['offset']:entity['offset'] + entity['length']]
-                    chat_id = message_data['chat']['id']
-                    user_id = message_data['from']['id']
-
-                    # Проверяем, есть ли эта эмоция в базе данных
-                    points = await get_emotion_points(chat_id, emoji)
-
-                    if points and points > 0:
-                        # Если эмоция найдена в базе, начисляем очки
-                        await set_user_points(user_id, chat_id, points)
-                        await bot.send_message(chat_id, f"Вы получили {points} очков за реакцию с эмоцией '{emoji}'!")
+        # Получаем количество очков за эту эмоцию из базы данных
+        points = await get_emotion_points(emotion, chat_id)
+        if points:
+            # Получаем текущие очки пользователя
+            current_points = await set_user_points(user_id, chat_id)
+            new_points = current_points + points
+            await set_user_points(user_id, chat_id, new_points)
+            await bot.send_message(chat_id, f"Вы получили {points} очков за реакцию с эмоцией '{emotion}'!")
+        else:
+            await bot.send_message(chat_id, f"Эта реакция с эмоцией '{emotion}' не настроена для начисления очков.")
 
     return {"status": "ok"}

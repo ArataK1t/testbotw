@@ -136,18 +136,15 @@ async def list_emotions_handler(message: types.Message):
     else:
         await message.reply("Эмоции не настроены.")
 
-# Обработчик реакции (эмодзи), который будет вызван при реакции на сообщение
-async def handle_reaction(callback_query: types.CallbackQuery):
-    """
-    Обрабатывает реакцию (эмодзи), добавленную к сообщению.
-    """
+# Обработчик реакции на сообщение
+async def handle_reaction(reaction: types.MessageReaction):
     try:
-        user_id = callback_query.from_user.id  # ID пользователя, который поставил реакцию
-        chat_id = callback_query.message.chat.id  # ID чата, в котором была реакция
-        emotion = callback_query.data.split('_')[1]  # Извлекаем эмоцию (смайл) из данных callback
+        user_id = reaction.user.id  # ID пользователя, который добавил реакцию
+        chat_id = reaction.message.chat.id  # ID чата, в котором была реакция
+        emotion = reaction.emoji  # Эмоция (например, "thumbs_up")
 
-        # Получаем количество очков за эту эмоцию
-        points = await get_emotion_points(emotion, chat_id)
+        # Получаем количество очков за эту эмоцию из базы данных
+        points = await get_emotion_points(emotion, chat_id)  # Получаем очки за эмоцию
         if points:
             # Получаем текущие очки пользователя
             current_points = await get_user_points(user_id, chat_id)
@@ -156,18 +153,13 @@ async def handle_reaction(callback_query: types.CallbackQuery):
             # Обновляем очки пользователя
             await set_user_points(user_id, chat_id, new_points)
 
-            # Обновляем ранг пользователя (если это необходимо)
-            await update_user_rank_based_on_points(user_id, chat_id, new_points)
-
             # Отправляем сообщение пользователю
-            await callback_query.message.reply(f"Вы получили {points} очков за реакцию '{emotion}'.")
+            await reaction.message.reply(f"Вы получили {points} очков за реакцию с эмоцией '{emotion}'.")
         else:
-            # Если эмоция не настроена для начисления очков
-            await callback_query.message.reply("Эта реакция не настроена для начисления очков.")
+            # Если реакция не настроена для начисления очков
+            await reaction.message.reply(f"Эта реакция с эмоцией '{emotion}' не настроена для начисления очков.")
     except Exception as e:
-        # Логируем ошибку, если она произошла
         logging.error(f"Ошибка при обработке реакции: {e}")
-
 
 
 
