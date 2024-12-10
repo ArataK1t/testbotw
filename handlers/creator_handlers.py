@@ -138,26 +138,31 @@ async def list_emotions_handler(message: types.Message):
 
 # Обработчик реакции на сообщение
 async def handle_reaction(reaction: types.MessageReaction):
+    """
+    Обрабатывает реакцию (эмоцию), добавленную к сообщению.
+    """
     try:
-        user_id = reaction.user.id  # ID пользователя, который добавил реакцию
-        chat_id = reaction.message.chat.id  # ID чата, в котором была реакция
-        emotion = reaction.emoji  # Эмоция (например, "thumbs_up")
+        # Получаем информацию о реакции
+        user_id = reaction.user.id
+        chat_id = reaction.message.chat.id
+        emoji = reaction.emoji  # Эмоция, на которую была поставлена реакция
 
         # Получаем количество очков за эту эмоцию из базы данных
-        points = await get_emotion_points(emotion, chat_id)  # Получаем очки за эмоцию
+        points = await get_emotion_points(emoji, chat_id)
+
         if points:
             # Получаем текущие очки пользователя
             current_points = await get_user_points(user_id, chat_id)
             new_points = current_points + points
 
-            # Обновляем очки пользователя
+            # Обновляем очки пользователя в базе данных
             await set_user_points(user_id, chat_id, new_points)
 
-            # Отправляем сообщение пользователю
-            await reaction.message.reply(f"Вы получили {points} очков за реакцию с эмоцией '{emotion}'.")
+            # Отправляем ответ с подтверждением начисленных очков
+            await reaction.message.reply(f"Вы получили {points} очков за реакцию '{emoji}'.")
         else:
-            # Если реакция не настроена для начисления очков
-            await reaction.message.reply(f"Эта реакция с эмоцией '{emotion}' не настроена для начисления очков.")
+            # Если эта реакция не настроена для начисления очков
+            await reaction.message.reply("Эта реакция не настроена для начисления очков.")
     except Exception as e:
         logging.error(f"Ошибка при обработке реакции: {e}")
 

@@ -17,24 +17,24 @@ async def process_update(request: Request):
     data = await request.json()
     logging.info(f"Received webhook data: {data}")
 
-    # Проверяем, есть ли информация о реакции
-    if 'reaction' in data:
-        reaction_data = data["reaction"]
-        logging.info(f"Received reaction data: {reaction_data}")
+    # Обрабатываем данные о реакции на сообщение
+    if 'message' in data:
+        message_data = data['message']
 
-        emotion = reaction_data['emoji']  # Эмоция (например, "thumbs_up")
-        chat_id = reaction_data["message"]["chat"]["id"]
-        user_id = reaction_data["user"]["id"]
+        # Проверяем, есть ли реакции
+        if 'reactions' in message_data:
+            for reaction in message_data['reactions']:
+                emoji = reaction['emoji']
+                chat_id = message_data['chat']['id']
+                user_id = message_data['from']['id']
 
-        # Получаем количество очков за эту эмоцию из базы данных
-        points = await get_emotion_points(emotion, chat_id)
-        if points:
-            # Получаем текущие очки пользователя
-            current_points = await set_user_points(user_id, chat_id)
-            new_points = current_points + points
-            await set_user_points(user_id, chat_id, new_points)
-            await bot.send_message(chat_id, f"Вы получили {points} очков за реакцию с эмоцией '{emotion}'!")
-        else:
-            await bot.send_message(chat_id, f"Эта реакция с эмоцией '{emotion}' не настроена для начисления очков.")
+                # Получаем количество очков за эмоцию
+                points = await get_emotion_points(emoji, chat_id)
+                if points:
+                    # Начисляем очки
+                    await set_user_points(user_id, chat_id, points)
+                    await bot.send_message(chat_id, f"Вы получили {points} очков за реакцию с эмоцией '{emoji}'.")
+                else:
+                    await bot.send_message(chat_id, "Эта реакция не настроена для начисления очков.")
 
     return {"status": "ok"}

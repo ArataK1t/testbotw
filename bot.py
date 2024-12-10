@@ -51,7 +51,7 @@ def register_handlers(dp):
     dp.register_message_handler(get_settings_handler, commands=['get_settings'])
     dp.register_message_handler(reset_all_handler, commands=['reset_all'])
     
-    dp.register_message_reaction_handler(handle_reaction)
+    dp.reaction_added(handle_reaction)
 
 
 
