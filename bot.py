@@ -2,9 +2,8 @@
 import logging, requests
 from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.middlewares.logging import LoggingMiddleware
-from aiogram.types import ParseMode
+from aiogram.types import ParseMode, CallbackQuery
 from aiogram.utils import executor
-from database.users import add_user, get_user_info, set_user_rank, set_user_points, reset_user, get_all_users
 from config import BOT_TOKEN
 from database.connection import Database  # Подключаем класс Database
 from handlers.creator_handlers import (
@@ -17,9 +16,6 @@ from handlers.creator_handlers import (
 from handlers.user_handlers import get_user_info_handler, add_user_handler
 from handlers.common_handlers import help_handler
 
-from webhook_server import app  # Импортируем FastAPI сервер для работы с вебхуками
-import asyncio
-from fastapi import FastAPI
 
 logging.basicConfig(level=logging.INFO)
 
@@ -55,7 +51,8 @@ def register_handlers(dp):
     dp.register_message_handler(get_settings_handler, commands=['get_settings'])
     dp.register_message_handler(reset_all_handler, commands=['reset_all'])
     
-    dp.register_message_handler(handle_reaction, content_types=types.ContentType.TEXT)
+    dp.register_callback_query_handler(handle_reaction, lambda callback: callback.data.startswith('reaction_'))
+
 
 # Хендлеры для пользователей
     dp.register_message_handler(get_user_info_handler, commands=['get_user_info'])
@@ -91,8 +88,5 @@ if __name__ == '__main__':
     register_handlers(dp)
 
     set_webhook()
-    # Запускаем FastAPI сервер с обработкой вебхуков
-    loop = asyncio.get_event_loop()
-    loop.create_task(app)  # Запускаем FastAPI сервер
 
     executor.start_polling(dp, skip_updates=True, on_startup=on_startup, on_shutdown=on_shutdown)

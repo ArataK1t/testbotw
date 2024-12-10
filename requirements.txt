@@ -1,6 +1,8 @@
 aiogram==2.24
 aiomysql==0.1.1
 python-dotenv==1.0.1
-PyMySQL==1.1.1
+#PyMySQL==1.1.1
 fastapi==0.95.1
-uvicorn==0.23.0 
+uvicorn==0.23.0
+# sudo apt install mysql-server-8.0
+# для в хода в sql sudo mysql -u root -p
