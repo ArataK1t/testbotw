@@ -137,18 +137,18 @@ async def list_emotions_handler(message: types.Message):
         await message.reply("Эмоции не настроены.")
 
 # Обработчик реакции на сообщение
-async def handle_reaction(reaction: types.MessageReaction):
+async def handle_reaction(reaction: types.Message):
     """
     Обрабатывает реакцию (эмоцию), добавленную к сообщению.
     """
     try:
         # Получаем информацию о реакции
-        user_id = reaction.user.id
-        chat_id = reaction.message.chat.id
-        emoji = reaction.emoji  # Эмоция, на которую была поставлена реакция
+        user_id = reaction.from_user.id
+        chat_id = reaction.chat.id
+        emotion = reaction.emotion  # Эмоция, на которую была поставлена реакция
 
         # Получаем количество очков за эту эмоцию из базы данных
-        points = await get_emotion_points(emoji, chat_id)
+        points = await get_emotion_points(emotion, chat_id)
 
         if points:
             # Получаем текущие очки пользователя
@@ -159,10 +159,10 @@ async def handle_reaction(reaction: types.MessageReaction):
             await set_user_points(user_id, chat_id, new_points)
 
             # Отправляем ответ с подтверждением начисленных очков
-            await reaction.message.reply(f"Вы получили {points} очков за реакцию '{emoji}'.")
+            await reaction.reply(f"Вы получили {points} очков за реакцию '{emotion}'.")
         else:
             # Если эта реакция не настроена для начисления очков
-            await reaction.message.reply("Эта реакция не настроена для начисления очков.")
+            await reaction.reply("Эта реакция не настроена для начисления очков.")
     except Exception as e:
         logging.error(f"Ошибка при обработке реакции: {e}")
 

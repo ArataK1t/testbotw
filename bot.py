@@ -2,7 +2,7 @@
 import logging, requests
 from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.middlewares.logging import LoggingMiddleware
-from aiogram.types import ParseMode, CallbackQuery
+from aiogram.types import ParseMode, CallbackQuery, Message
 from aiogram.utils import executor
 from config import BOT_TOKEN
 from database.connection import Database  # Подключаем класс Database
@@ -51,7 +51,7 @@ def register_handlers(dp):
     dp.register_message_handler(get_settings_handler, commands=['get_settings'])
     dp.register_message_handler(reset_all_handler, commands=['reset_all'])
     
-    dp.reaction_added(handle_reaction)
+    dp.message_handler(handle_reaction, content_types=types.ContentType.REACTION)
 
 
 
